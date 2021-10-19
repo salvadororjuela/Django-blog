@@ -1,0 +1,15 @@
+{% extends "blog/layout.html" %}
+
+{% block main %}
+    <br>
+    <h1 class="titlehome">Blog Homepage</h1>
+    <br><br>
+    <h2 class="ArticleList">List of Articles</h2>
+    <div class="articles">
+        {% for article in Articles %}
+        <h4><a href="{% url 'blog:article_detail' article.slug %}" title="{{ article.title }}">{{article.title}}</h4></a>
+            <p>{{article.snippet}}</p>
+            <p>{{article.date}}</p>
+        {% endfor %}
+    </div>
+{% endblock %}

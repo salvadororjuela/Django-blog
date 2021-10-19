@@ -1,0 +1,15 @@
+{% extends "blog/layout.html" %}
+
+{% block main %}
+<br>
+    <h1 class="titlehome">Signup Web Page</h1>
+    <br><br>
+    <!-- Include the name of the app followed by ":" and the name of the path
+    to work properly url 'user:signup' -->
+    <form action="{% url 'users:signup' %}" method="post" class="signupForm">
+        {% csrf_token %}
+        {{ form }}
+        <br><br>
+        <input type="submit" value="submit">
+    </form>
+{% endblock %}

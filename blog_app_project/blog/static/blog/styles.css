@@ -1,0 +1,54 @@
+body {
+  font-family: Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+    sans-serif;
+  background-image: url("hugo-juteau-xh_l2eGV4B4-unsplash.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.titlehome {
+  text-align: center;
+  color: #fff;
+  /* width to align the text on the center. 
+  If width:100%, the text will be to the right of the center */
+  width: 85%;
+}
+
+.ArticleList {
+  color: #fff;
+  margin: 25px;
+}
+
+.articles {
+  padding-left: 50px;
+}
+
+a {
+  color: rgb(84, 198, 204);
+}
+
+p {
+  color: #fff;
+}
+
+.linkhomepage {
+  float: left;
+  margin-left: 50px;
+}
+
+.article {
+  text-align: left;
+  padding: 50px 50px;
+}
+
+.thumbnail {
+  width: 400px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.signupForm {
+  text-align: center;
+  color: #fff;
+}
