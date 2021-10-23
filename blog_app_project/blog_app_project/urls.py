@@ -18,11 +18,16 @@ from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
+# Necessary for redirecting the homepage
+from blog import views
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("blog/", include("blog.urls")),
     path("users/", include("users.urls")),
+    # Redirects the homepage to the url http://127.0.0.1:8000/
+    path("", views.index, name="index")
 ]
 
 urlpatterns += staticfiles_urlpatterns()
