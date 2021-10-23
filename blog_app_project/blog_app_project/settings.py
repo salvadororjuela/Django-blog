@@ -80,7 +80,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'secretariasdb',
         'USER': 'root',
-        'PASSWORD': 'XXXXXXXXXXX',
+        'PASSWORD': '$%XfxcT231',
         'HOST': 'localhost',
         'PORT': '3306'
 
