@@ -1,0 +1,138 @@
+1. CREATE THE PROJECT
+	A. Create the project folder and subfolders use the command
+		
+		i. django-admin startproject blog_app_project.
+		
+	B. Create the first application to manage the html layout, homepage with all articles to display, each individual article, and new articles to post.
+		
+		i. python3 manage.py startapp blog.
+		
+	C. Register the application blog in blog_app_project/settings.py
+		
+		INSTALLED_APPS = [
+			'blog',
+			'users',
+			'django.contrib.admin',
+			.
+			.
+			.
+		]
+	
+	D. Create the route to the application urls.py file of each application in blog_app_project/urls.py
+		
+		from django.contrib import admin
+		from django.urls import path, include
+		from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+		from django.conf.urls.static import static
+		from django.conf import settings
+		# Necessary for redirecting the homepage
+		from blog import views (This is necessary for the following step)
+
+
+		urlpatterns = [
+			path('admin/', admin.site.urls),
+			path("blog/", include("blog.urls")), 
+			path("users/", include("users.urls")),
+			# Redirects the homepage to the url http://127.0.0.1:8000/
+			path("", views.index, name="index")
+		]
+	
+	E. In the folder "blog" created in the B step, create a new file called urls.py and include the following information.
+	
+		from django.urls import path
+		from . import views
+
+
+		# Namespace urls to avoid conflict with urls named the same way in
+		# other app folders
+		app_name = "blog" # Importat for name space on each urls.py file in each app.
+
+		urlpatterns = [
+			# Path to the home web with the list of articles
+			path("", views.index, name="index"),
+			# Path to create new articles by registered users
+			path("newarticle", views.newarticle_view, name="newarticle"),
+			# The slug path must be below any other paths that use slug as an argument
+			# because the slug is the final parth of the url in the browser.
+			path("<slug>", views.article_detail, name="article_detail"),
+		]
+	
+	F. The file blog/views.py will manage the actions taken every time a url path is taken. This will be explained when actions are added througout this document.
+	
+
+2. HTML TEMPLATES
+
+	A. Create the folder blog/templates/blog/ and inside this create the templates layout.html, articleContent.html, index.html, newarticle.html.
+	
+	
+	
+3. CREATE index FUNCTIONS IN BLOG/VIEWS.PY 
+	
+	i. Actions to take are to be included in blog/views.py as functions (i.e...
+	
+		from django.contrib.auth import forms
+		from django.shortcuts import render
+		from .models import Articles
+		# Required to access to websites where log in is required
+		from django.contrib.auth.decorators import login_required
+		# Import the file where the forms are created
+		from . import forms
+
+
+		# Create your views here.
+		def index(request):
+			return render(request, "blog/index.html", {
+				"Articles": Articles.objects.all().order_by("date")
+			})
+		)
+		
+4. CREATE THE MODEL FOR THE DATABASE TABLE
+
+	from django.db import models
+	from django.contrib.auth.models import User
+
+
+	# Create your models here.
+	class Articles(models.Model):
+		title = models.CharField(max_length=150, unique=True)
+		# slug is a newspaper term. It is short label generally used in URLs
+		# and contain only letters, numbers, underscores or hyphens.
+		slug = models.SlugField()
+		body = models.TextField()
+		# Field authomatically populated when the user submits the article
+		date = models.DateTimeField(auto_now_add=True)
+		# Field to add a thumbnail for the blog article
+		thumbnail = models.ImageField(default="default.png", blank=True)
+		# Field to associate the articles with the user that created it
+		author = models.ForeignKey(User, default=None, on_delete=models.CASCADE)
+
+		# Returns the title content in a human readable fashion
+		def __str__(self):
+		    return self.title
+
+		"""Method to return only a part of the body and display this snippet
+		instead of the whole body of the article"""
+		def snippet(self):
+		    return f"{self.body[:100]}..."
+
+
+5. MIGRATE (Each time you make major changes to the model)
+
+	i. Migrate updates the changes on the application database
+	
+	ii. python3 manage.py makemigrations
+	
+	iii. python3 manage.py migrate
+	
+	Note: The changes will be registered inside blog/migratios. Every time a migration is done, a new file is created inside this folder with the registered changes.
+	
+6. REGISTER THE MODEL INTO blog/admin.py TO UPDATE THE ADMIN SECTION OF DJANGO
+	
+	from django.contrib import admin
+	from .models import Articles
+
+
+	# Register your models here.
+	admin.site.register(Articles)
+	
+7. DJANGO ORM (Object-Relational Mapping)
