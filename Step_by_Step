@@ -85,6 +85,7 @@
 				"Articles": Articles.objects.all().order_by("date")
 			})
 		)
+	
 		
 4. CREATE THE MODEL FOR THE DATABASE TABLE
 
@@ -126,7 +127,19 @@
 	
 	Note: The changes will be registered inside blog/migratios. Every time a migration is done, a new file is created inside this folder with the registered changes.
 	
-6. REGISTER THE MODEL INTO blog/admin.py TO UPDATE THE ADMIN SECTION OF DJANGO
+	
+6. CREATE A SUPERUSER TO HANDLE THE ADMIN SECTION
+
+	i. python3 manage.py createsuperuser
+	
+	ii. Create username
+	
+	iii. Create password
+	
+	iv. Confirm password
+
+
+7. REGISTER THE MODEL INTO blog/admin.py TO UPDATE THE ADMIN SECTION OF DJANGO
 	
 	from django.contrib import admin
 	from .models import Articles
@@ -135,4 +148,73 @@
 	# Register your models here.
 	admin.site.register(Articles)
 	
-7. DJANGO ORM (Object-Relational Mapping)
+	
+8. DJANGO ORM (Object-Relational Mapping)
+
+	i. python3 manage.py shell
+	
+	Note: ORM bridges	the code and the database. It allows us to interact between models created and a terminal to handle data. 
+	
+	ii. Don't forget to include inside of each model class the following __str__ to return the information as strings in the shell and in the admin section:
+	
+	def __str__(self):
+        return self.title # Can be change to anything we want to be returned as string
+
+
+9. DEFINE THE VIEW TO DISPLAY THE LIST OF ARTICLES
+
+	i. in blog/views.py insert the function:
+	
+		def index(request):
+			return render(request, "blog/index.html", {
+				"Articles": Articles.objects.all().order_by("date")
+			})	
+			
+	The previos function takes an argument (request): and then returs three arguments inside the render. The first one is a request, the second is the direction and file to open in the browser ("blog/index.html"), and the third is the variable that will be displayed in index.html which in this case is "Article". "Article is the dictionary that contains the instances included in the Articles model (Articles table). 
+	
+	
+10. INSERT THE LIST OF ARTICLES FROM THE DATABASE INTO INDEX.HTML.
+	i. Create the index.html file and code.
+	
+		{% extends "blog/layout.html" %}
+
+			{% block title %}
+				Homepage
+			{% endblock %}
+
+			{% block main %}
+				<br>
+				<h1 class="titlehome">Blog Homepage</h1>
+				<br>
+				<!-- If a message is to be displayed, it will be shown here -->
+				{% if message %}
+					<div class="message"> {{ message }}</div>
+				{% endif %}
+				<h2 class="ArticleList">List of Articles</h2>
+				<div class="articles">
+					<!-- Display the list of articles dinamically-->
+						{% for article in Articles %}
+						<div class="individualArticle">
+						    <h4><a href="{% url 'blog:article_detail' article.slug %}" title="{{ article.title }}">{{article.title}}</h4></a>
+						    <p>{{article.snippet}}</p>
+						    <p>{{article.date}}</p>
+						    <br>
+						    <p class="author">Author: {{article.author.username}}</p>
+						</div>
+						{% endfor %}
+					</div>
+				</div>
+			{% endblock %}	
+			
+
+11. CREATE A SNIPPET TO DISPLAY ON THE INDEX.HTML PAGE
+
+	i. 	Create the following function inside the class Articles in blog/models.py
+	
+		def snippet(self):
+        return f"{self.body[:100]}..."
+        
+    Note: the snippet will be displayed in blog/index.html inside <p>{{article.snippet}}</p>
+
+
+
