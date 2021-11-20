@@ -15,7 +15,7 @@
     <br>
     <div class="centering">
         <!-- Include the name of the app followed by ":" and the name of the path
-        to work properly url 'user:signup' -->
+        to work properly url 'users:signup' -->
         <form action="{% url 'users:signup' %}" method="post" class="signupForm">
             {% csrf_token %}
             {{ form }}

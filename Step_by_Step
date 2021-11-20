@@ -66,7 +66,7 @@
 	
 	
 	
-3. CREATE index FUNCTIONS IN BLOG/VIEWS.PY 
+3. CREATE index FUNCTION IN BLOG/VIEWS.PY 
 	
 	i. Actions to take are to be included in blog/views.py as functions (i.e...
 	
@@ -90,6 +90,7 @@
 4. CREATE THE MODEL FOR THE DATABASE TABLE
 
 	from django.db import models
+	# Import to use the logged in user as the article author.
 	from django.contrib.auth.models import User
 
 
@@ -104,7 +105,8 @@
 		date = models.DateTimeField(auto_now_add=True)
 		# Field to add a thumbnail for the blog article
 		thumbnail = models.ImageField(default="default.png", blank=True)
-		# Field to associate the articles with the user that created it
+		# Field to associate the articles with the user that created it. The user
+    	# in this case is the logged in User that the system registers.
 		author = models.ForeignKey(User, default=None, on_delete=models.CASCADE)
 
 		# Returns the title content in a human readable fashion
@@ -217,4 +219,755 @@
     Note: the snippet will be displayed in blog/index.html inside <p>{{article.snippet}}</p>
 
 
+12. MANAGE STATIC FILES (images, css or javascript files)
 
+	i. This method is used for development, where our computer is the server. For production the static files are served by a server.
+	
+		A. Import the url for static files and develop the following code in blog_app_project/urls.py
+		
+			from django.contrib import admin
+			from django.urls import path, include
+			# Necesary to import static files.This will let us append and serve static files
+			from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+			from django.conf.urls.static import static
+			from django.conf import settings
+			# Necessary for redirecting the homepage
+			from blog import views
+
+
+			urlpatterns = [
+				path('admin/', admin.site.urls),
+				path("blog/", include("blog.urls")),
+				path("users/", include("users.urls")),
+				# Redirects the homepage to the url http://127.0.0.1:8000/
+				path("", views.index, name="index")
+			]
+
+			# Function to chech if we are indebug mode. If we are, it will append the static files to the url
+			urlpatterns += staticfiles_urlpatterns()
+			# Necesary to read media files from the database
+			urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+			
+	ii. It is importat that the route to static files is included into blog_app_project/settings.py as follows:
+	
+		STATIC_URL = '/static/'
+		
+	iii. Create the file for the static files in blog/static/blog/styles.css. The route is the same for every static file that will be used by the application.
+	
+	iv. Create the base layout for all html files. In the layout.html heading include {% load static %}, so the static urls can be followed when necesary.
+	
+		{% load static %}
+
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta http-equiv="X-UA-Compatible" content="IE=edge">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>{% block title%} {% endblock %}</title>
+			<!-- ?{% now 'U' %} used to reset cache and load the styles.css file -->
+			<link rel="stylesheet" href="{% static 'blog/styles.css' %}?{% now 'U' %}" type="text/css">
+		</head>
+		<body>  
+			<!-- Link to homepage located at the main project directory -->
+			<a href="{% url 'index'%}" class="linkhomepage">
+				<img src="{% static 'blog/django-python-logo.png' %}" alt="Link to Homepage" width="150px" title="Return to Homepage">
+			</a>
+			<nav>
+				<ul>
+				    <!-- If the user is authenticated, these two links will be displayed -->
+				    {% if user.is_authenticated %}
+				        <li class="usersloggedin">
+				            <p>Welcome: {{user.username}}</p>
+				        </li>
+				        <li class="floatright">
+				        	<!-- The following form is necesary to execute the action logout_view created in users/views.py -->
+				            <form action="{% url 'users:logout' %}" method="post">
+				                {% csrf_token %}
+				                <input type="submit" value="Log Out" class="logout" title="Log Out">
+				            </form>
+				        </li>
+				        <li class="floatright">
+				            <form action="{% url 'blog:newarticle' %}" method="post">
+				                {% csrf_token %}
+				                <input type="submit" value="New Article" class="newarticle" title="New Article">
+				            </form>
+				        </li>
+				    <!-- If the user is not authenticated, these two links will be diplayed -->
+				    {% else %}
+				        <li class="floatright" title="Sign Up!">
+				            <a href="{% url 'users:signup' %}" class="logsign">Sign Up</a>
+				        </li>
+				        <li class="floatright users" title="Sign In!">
+				            <a href="{% url 'users:login' %}" class="logsign">Log In</a>
+				        </li>
+				    {% endif %}
+				</ul>
+			</nav>
+			{% block main %}
+			{% endblock %}
+			<!-- Back to top button hidden. It will appears when scrolling down more than 50 -->
+			<button onclick="backToTop()" id="backTopBtn" class="backTopBtn"style="display:none;">Back to Top</button>
+			<script src="{% static 'blog/script.js' %}"></script>
+		</body>
+		</html>
+
+
+13. CREATE THE VIEW FOR EACH INDIVIDUAL ARTICLE WHEN SELECTED IN blog/views.py. (def article_detail(request....)
+
+	from django.contrib.auth import forms
+	from django.shortcuts import render
+	from .models import Articles
+	# Required to access to websites where log in is required
+	from django.contrib.auth.decorators import login_required
+	# Import the file where the forms are created
+	from . import forms
+
+
+	# Create your views here.
+	def index(request):
+		return render(request, "blog/index.html", {
+			"Articles": Articles.objects.all().order_by("date")
+		})
+
+
+	def article_detail(request, slug):
+		article = Articles.objects.get(slug=slug)
+		return render(request, "blog/articleContent.html", {
+			'article': article
+		})
+		
+	Note: Inside blog/urls.py, the path  path("<slug>", views.article_detail, name="article_detail"), is used to direct to the specific url for each article via <slug>.
+	In blog/views.py the article_detail(reques, slug); function receives the slug parameter and uses it to return the specific content of the selected article.
+	
+
+14. CREATE blog/articleContent.html 
+
+	{% extends 'blog/layout.html' %} 
+
+	{% block title %}
+		{{ article.title }}
+	{% endblock %}
+
+	{% block main %}
+	<br />
+	<h1 class="titlehome">{{ article.title }}</h1>
+	<div class="articleDetails">
+	  <div class="article">
+		<img class="thumbnail" src="{{ article.thumbnail.url}}" alt="Thumbnail" />
+		<p>{{ article.body }}</p>
+		<p>{{ article.date }}</p>
+		<br>
+		<p>Author: {{article.author.username}}</p>
+	  </div>
+	</div>
+	{% endblock %}
+	
+	Note: The function article_detail(request, slug): is in charge of sending the information to display on this web page via the variable article = Articles.objects.get(slug=slug)
+	
+
+15. UPLOAD IMAGES TO THE DATABASE
+
+	i. Images will be loaded by users when creating new articles using blog/templates/blog/newartilce.html
+		
+		{% extends 'blog/layout.html' %}
+
+		{% block title %}
+			New Article
+		{% endblock %}
+
+		{% block main %}
+			<br>
+			<h1 class="titlehome">Create a New Article</h1>
+			<br><br>
+			{% if message %}
+				<div class="wrong"> {{ message }} </div>
+			{% endif %}
+			<br>
+			<!-- As the a form submits a media file, its mandatory to use enctype="multipart/form-data" -->
+			<div class="centering">
+				<form class="NewArticle" action="{% url 'blog:newarticle' %}" method="post" enctype="multipart/form-data">
+				    {% csrf_token %}
+				    {{ form }}
+				    <input type="submit" value="Create Article">
+				</form>
+			</div>
+		{% endblock %}
+		
+	ii. In blog_app_project/settings.py include the path to the media and the root where these files will be stored when uploaded with the following code:
+
+		#....	
+		STATIC_URL = '/static/'
+
+		# Media files to store in models as model fields (FileField, ImageField)
+		MEDIA_URL = "/media/"
+		# Folder in root directory where media files will be stored
+		MEDIA_ROOT = "media"
+		
+	iii. in blog_app_project it is necessary to include the following code to read media files from the database mentioned in the previous point
+	
+		from django.conf import settings
+		#...
+		urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+	
+		
+	iv. If when runnig the app an error appears indicating that pillow is not installed, proceed to install it.
+	
+	v. Finally, the image will be displayed on blog/templates/blog/articleContent.html according to the html templated displayed in the point No. 14.
+	
+		{% extends 'blog/layout.html' %} 
+
+		{% block title %}
+			{{ article.title }}
+		{% endblock %}
+
+		{% block main %}
+		<br />
+		<h1 class="titlehome">{{ article.title }}</h1>
+		<div class="articleDetails">
+		  <div class="article">
+			<img class="thumbnail" src="{{ article.thumbnail.url}}" alt="Thumbnail" />
+			<p>{{ article.body }}</p>
+			<p>{{ article.date }}</p>
+			<br>
+			<p>Author: {{article.author.username}}</p>
+		  </div>
+		</div>
+		{% endblock %}
+	
+
+16. CREATE NEW ARTICLES VIA A NEW APP TO MANAGE USERS
+
+	i. Once the template blog/templates/blog/newartilce.html is created (point 15.i), register the new app in settings.py. In this project the application to handle users will be called "users"
+	
+		#....
+		DEBUG = True
+
+		ALLOWED_HOSTS = []
+
+
+		# Application definition
+
+		INSTALLED_APPS = [
+			'blog',
+			'users',
+			'django.contrib.admin',
+			'django.contrib.auth',
+			'django.contrib.contenttypes',
+			'django.contrib.sessions',
+			'django.contrib.messages',
+			'django.contrib.staticfiles',
+		]
+
+	ii. In a terminal create the application inside a1_blog_app/blog_app_project:
+		
+		python3 manage.py startapp users
+		
+	iii. Registered users are the only ones allowed to create new articles, so it is necessary to create routes to log in, sign up and log out. To do so let's create the file users/urls.py with these routes.Those routes are used to sign up users, log in, and to log out according to the following paths..
+	
+	from django.urls import path
+	from . import views
+
+
+	# Namespace urls to avoid conflict with urls named the same way in
+	# other app folders
+	app_name = "users"
+
+
+	urlpatterns = [
+		path("signup/", views.signup_view, name="signup"),
+		path("login/", views.login_view, name="login"),
+		path("logout/", views.logout_view, name="logout"),
+	]
+
+	iv. Register users/urls.py inside blog_app_project/urls.py
+	
+		#...
+		from blog import views
+
+
+		urlpatterns = [
+			path('admin/', admin.site.urls),
+			path("blog/", include("blog.urls")),
+			path("users/", include("users.urls")),  ##############################################################
+			# Redirects the homepage to the url http://127.0.0.1:8000/
+			path("", views.index, name="index")
+		]
+
+		urlpatterns += staticfiles_urlpatterns()
+		# Necesary to read media files from the database
+		urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+	v. Create the views to accomplish the goal of each of these paths in usert/views.py
+	
+		from django.shortcuts import render, redirect
+		# Creates forms
+		from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+		from django.contrib.auth import login, logout
+		# Required to display the articles after logging out (logout_view)
+		from blog.models import Articles
+		# Import forms to retreive NewArticle() inside login_view when user is not
+		# logged in when trying to access to create a new article
+		from blog import forms
+
+
+		# Function to sign up
+		def signup_view(request):
+			# If user reaches via post
+			if request.method == "POST":
+				# The form obtains the user information
+				form = UserCreationForm(request.POST)
+				# Validation
+				if form.is_valid():
+				    # Saves the user's information into the database
+				    user = form.save()
+				    # Log the user in
+				    login(request, user)
+				    # After logging in the user is redirected to the list of articles
+				    # When redirecting to a html file in another app folderl use ":"
+				    # ("blog:index")
+				    # return redirect("blog:index")
+				    return render(request, "blog/index.html", {
+				        # Imported from blog.models
+				        "Articles": Articles.objects.all().order_by("date"),
+				        "message": "User Succesfuly Created",
+				    })
+
+				# If form data is not valid, it is returned to the sign up form to
+				# correct it
+				else:
+				    return render(request, "users/signup.html", {
+				        "form": form,
+				        "message": "Upss. Something Went Wrong!",
+				    })
+			# If user reaches via get
+			else:
+				# Creates the form
+				form = UserCreationForm()
+				return render(request, "users/signup.html", {
+				    "form": form
+				})
+
+
+		# Function to log in
+		def login_view(request):
+			# if user reaches via post
+			if request.method == "POST":
+				# Creates the authentication form. It requires to name the parameter
+				# (data=request.POST)
+				form = AuthenticationForm(data=request.POST)
+				# Validation
+				if form.is_valid():
+				    # Log in the user
+				    # Gets the data of the user from the form variable
+				    user = form.get_user()
+				    # Logs in using the user variable as a parameter
+				    login(request, user)
+				    # In case the user is trying to post a blog article but is
+				    # not logged in, he is redirected to the log in website
+				    if "next" in request.POST:
+				        # Both options work for return, but the second one allows
+				        # returning a message
+				        # return redirect(request.POST.get("next"))
+				        # Allows returning a message as a parameter
+				        form = forms.NewArticle()
+				        return render(request, "blog/newarticle.html", {
+				            "message": "Succesfully Logged In!",
+				            "form": form,
+				        })
+				    else:
+				        return render(request, "blog/index.html", {
+				            # Imported from blog.models
+				            "Articles": Articles.objects.all().order_by("date"),
+				            "message": "You are Logged In!",
+				        })
+				# If form data is not valid, it is returned to the log in form correct
+				# it to
+				else:
+				    return render(request, "users/login.html", {
+				        "form": form,
+				        "message": "Upss. Something Went Wrong!",
+				    })
+
+			# If user reaches via get
+			else:
+				# Creates and displays the form
+				form = AuthenticationForm()
+				return render(request, "users/login.html", {
+				    "form": form,
+				})
+
+
+		def logout_view(request):
+			if request.method == "POST":
+				logout(request)
+				return render(request, "blog/index.html", {
+				    # Imported from blog.models
+				    "Articles": Articles.objects.all().order_by("date"),
+				    "message": "Succesfully Logged Out!",
+				})
+
+	vi. Create users/templates/users/signup.html
+	
+		{% extends "blog/layout.html" %}
+
+		{% block title %}
+			Sign Up
+		{% endblock %}
+
+		{% block main %}
+		<br>
+			<h1 class="titlehome">Sign Up Page</h1>
+			<br><br>
+			<!-- If a message is to be displayed, it will be shown here -->
+			{% if message %}
+				<div class="wrong"> {{ message }}</div>
+			{% endif %}
+			<br>
+			<div class="centering">
+				<!-- Include the name of the app followed by ":" and the name of the path
+				to work properly url 'users:signup' -->
+				<form action="{% url 'users:signup' %}" method="post" class="signupForm">
+				    {% csrf_token %}
+				    {{ form }}
+				    <input type="submit" value="Sign Up">
+				</form>
+			</div>
+		{% endblock %}
+		
+	vii. Create users/template/users/login.html
+	
+		{% extends "blog/layout.html" %}
+
+		{% block title %}
+			Log In
+		{% endblock %}
+
+		{% block main %}
+		<br>
+			<h1 class="titlehome">Log in Page</h1>
+			<br><br>
+			<!-- If a message is to be displayed, it will be shown here -->
+			{% if message %}
+				<div class="wrong"> {{ message }}</div>
+			{% endif %}
+			<br>
+			<!-- Include the name of the app followed by ":" and the name of the path
+			to work properly url 'user:signup' -->
+			<div class="centering">
+				<form action="{% url 'users:login' %}" method="post" class="loginForm">
+				    {% csrf_token %}
+				    {{ form }}
+				    <!-- Checks if the next parameter is present in the browser. If it is
+				    present, the request.GET.next the following input field will be triggered-->
+				    {% if request.GET.next %}
+				        <!-- Sends the value of the input as the next parameter to the browser -->
+				        <input type="hidden" name="next", value="{{request.GET.next}}">
+				    {% endif %}
+				    <input type="submit" value="Log in">
+				</form>
+			</div>
+		{% endblock %}
+		
+	viii. Create the newarticle_view in blog/views.py below the view article_detail().This function will control the creation of new articles
+	
+		from django.contrib.auth import forms
+		from django.shortcuts import render
+		from .models import Articles
+		# Required to access to websites where log in is required
+		from django.contrib.auth.decorators import login_required
+		# Import the file where the forms are created
+		from . import forms
+
+
+		# Create your views here.
+		def index(request):
+			return render(request, "blog/index.html", {
+				"Articles": Articles.objects.all().order_by("date")
+			})
+
+
+		def article_detail(request, slug):
+			article = Articles.objects.get(slug=slug)
+			return render(request, "blog/articleContent.html", {
+				'article': article
+			})
+
+
+		# log in decorator provides the path to send the user that is not logged
+		# in to the log in page
+		@login_required(login_url="/users/login/")
+		def newarticle_view(request):
+			# If user reaches via POST
+			if request.method == "POST":
+				# Creates the form and get the information posted by the user.
+				# As the form submits media files, the reques.FILES argument is
+				# required to be passed in.
+				form = forms.NewArticle(request.POST, request.FILES)
+				# If form is valid, save the article
+				if form.is_valid():
+				    # To save create a variable and store de data, but not commit
+				    # momentarily
+				    articleToCreate = form.save(commit=False)
+				    # Now the actual user (request.User) is assigned as the author
+				    articleToCreate.author = request.user
+				    # Save the Article
+				    articleToCreate.save()
+				    # Return the arguments and display the list of articles
+				    return render(request, "blog/index.html", {
+				        "Articles": Articles.objects.all().order_by("date"),
+				        "message": "Article Succesfully Posted!",
+				    })
+
+			# If user reaches via get
+			else:
+				# Create a new instance of the form for the new article
+				form = forms.NewArticle()
+				# Render the form variable to newarticle.html
+			return render(request, "blog/newarticle.html", {
+				"form": form
+			})
+
+	ix. Create the html file to display the form to create new articles (blog/templates/blog/newarticle.html)
+	
+		{% extends 'blog/layout.html' %}
+
+		{% block title %}
+			New Article
+		{% endblock %}
+
+		{% block main %}
+			<br>
+			<h1 class="titlehome">Create a New Article</h1>
+			<br><br>
+			{% if message %}
+				<div class="wrong"> {{ message }} </div>
+			{% endif %}
+			<br>
+			<!-- As the a form submits a media file, its mandatory to use enctype="multipart/form-data" -->
+			<div class="centering">
+				<form class="NewArticle" action="{% url 'blog:newarticle' %}" method="post" enctype="multipart/form-data">
+				    {% csrf_token %}
+				    {{ form }}
+				    <input type="submit" value="Create Article">
+				</form>
+			</div>
+		{% endblock %}	
+		
+	x. Require log in for the pages where the user must be logged in before accessing them.
+	
+		a. Use the @login_required decorator on top of the followin views.
+			note. To acces the decorator it is necessary to do the following:
+			
+				from django.contrib.auth.decorators import login_required
+		
+			1. blog/views.py def newarticle_view():
+			
+				# ...
+				# log in decorator provides the path to send the user that is not logged
+				# in to the log in page
+				@login_required(login_url="/users/login/")
+				def newarticle_view(request):
+				# ...
+	
+	xi. Make sure you are redirected to the page where you tried to access before log in and log in is required
+	
+		When the user is not logged in and tries to access to a Url that requires log in, the browser will use the query string ?next= ...
+		In this exercise, this is display when the user tries to introduce the url to create a new article but he is not logged in.
+		The view that controls this is login_view in users/views.py as follows:
+		
+			# Function to log in
+			def login_view(request):
+				# if user reaches via post
+				if request.method == "POST":
+					# Creates the authentication form. It requires to name the parameter
+					# (data=request.POST)
+					form = AuthenticationForm(data=request.POST)
+					# Validation
+					if form.is_valid():
+						# Log in the user
+						# Gets the data of the user from the form variable
+						user = form.get_user()
+						# Logs in using the user variable as a parameter
+						login(request, user)
+						# In case the user is trying to post a blog article but is
+						# not logged in, he is redirected to the log in website
+						if "next" in request.POST:
+						    # Both options work for return, but the second one allows
+						    # returning a message
+						    # return redirect(request.POST.get("next"))
+						    # Allows returning a message as a parameter
+						    form = forms.NewArticle()
+						    return render(request, "blog/newarticle.html", {
+						        "message": "Succesfully Logged In!",
+						        "form": form,
+			# ...
+			
+		
+		When the form is valid and the query string ?next= ... appears inside the post request (if "next" in request.POST:), the page will redirect to the page where the user was trying to access without being loged in.
+		
+		Also, in users/templates/users/login.html the if statement is included inside the POST method of the form, with the value={{request.GET.next}} to include the get method when the query string ?next= ... access to the page that requires from the user to be logged in.
+			
+			# ...
+			<form action="{% url 'users:login' %}" method="post" class="loginForm">
+		        {% csrf_token %}
+		        {{ form }}
+		        <!-- Checks if the next parameter is present in the browser. If it is
+		        present, the request.GET.next the following input field will be triggered-->
+		        {% if request.GET.next %}
+		            <!-- Sends the value of the input as the next parameter to the browser -->
+		            <input type="hidden" name="next", value="{{request.GET.next}}">
+		        {% endif %}
+			# ...
+	
+17. CREATE THE NEW ARTICLE FORM
+
+	i. Create a class for the new article as the form in which the user will input the article information in blog/forms.py
+		
+		from django import forms
+		from . import models
+
+
+		# Class to create a form with the necessary fields to send to the database
+		# the information of a new article
+		class NewArticle(forms.ModelForm):
+			class Meta:
+				# Define the fields to be present and the model where they are
+				# inherit from.
+				model = models.Articles
+				# Fields to include
+				fields = ['title', 'body', 'slug', 'thumbnail']
+				
+		Note: Inside the previous class the list fields = ['title', 'body', 'slug', 'thumbnail'] correspond to the fields with the information that appears in the class Articles in blog/models.py. Those are the fields with the information to be sent to the database. Also it is necessary to import models.py into this file to connect both files (from . import models)
+		
+	ii. In blog/views.py the view newarticle_view(request): will use this form (form = forms.NewArticle(request.POST, request.FILES)) the field where the user will input the article information.
+	
+		# log in decorator provides the path to send the user that is not logged
+		# in to the log in page
+		@login_required(login_url="/users/login/")
+		def newarticle_view(request):
+			# If user reaches via POST
+			if request.method == "POST":
+				# Creates the form and get the information posted by the user.
+				# As the form submits media files, the reques.FILES argument is
+				# required to be passed in.
+				form = forms.NewArticle(request.POST, request.FILES)
+				# If form is valid, save the article
+				if form.is_valid():
+				    # To save create a variable and store de data, but not commit
+				    # momentarily
+				    articleToCreate = form.save(commit=False)
+				    # Now the actual user (request.User) is assigned as the author
+				    articleToCreate.author = request.user
+				    # Save the Article
+				    articleToCreate.save()
+				    # Return the arguments and display the list of articles
+				    return render(request, "blog/index.html", {
+				        "Articles": Articles.objects.all().order_by("date"),
+				        "message": "Article Succesfully Posted!",
+				    })
+
+			# If user reaches via get
+			else:
+				# Create a new instance of the form for the new article
+				form = forms.NewArticle()
+				# Render the form variable to newarticle.html
+			return render(request, "blog/newarticle.html", {
+				"form": form
+			})
+
+	iii. Create the template for the new articles in blog/templates/blog/newarticle.html, where the previous form will be displayed.
+	
+		{% extends 'blog/layout.html' %}
+
+		{% block title %}
+			New Article
+		{% endblock %}
+
+		{% block main %}
+			<br>
+			<h1 class="titlehome">Create a New Article</h1>
+			<br><br>
+			{% if message %}
+				<div class="wrong"> {{ message }} </div>
+			{% endif %}
+			<br>
+			<!-- As the a form submits a media file, its mandatory to use enctype="multipart/form-data" to encript that file -->
+			<div class="centering">
+				<form class="NewArticle" action="{% url 'blog:newarticle' %}" method="post" enctype="multipart/form-data">
+				    {% csrf_token %}
+				    {{ form }}
+				    <input type="submit" value="Create Article">
+				</form>
+			</div>
+		{% endblock %}
+	
+		
+18. HIDE AND DISPLAY THE MENU FOR USERS WHO ARE LOGGED IN
+
+	This is handled by the following piece of code inside blog/templates/blog/layout.html. It's functionality is that if the user is logged in, then display the menu ({% if user.is_authenticated %}.) Otherwise, displays the menu of the navbar for users not logged in ({% else %} <li class="floatright" title="Sign Up!">)
+	
+		<a href="{% url 'index'%}" class="linkhomepage">
+			<img src="{% static 'blog/django-python-logo.png' %}" alt="Link to Homepage" width="150px" title="Return to Homepage">
+		</a>
+		<nav>
+			<ul>
+			    <!-- If the user is authenticated, these two links will be displayed -->
+			    {% if user.is_authenticated %}
+			        <li class="usersloggedin">
+			            <p>Welcome: {{user.username}}</p>
+			        </li>
+			        <li class="floatright">
+			            <!-- The following form is necesary to execute the action logout_view created in users/views.py -->
+			            <form action="{% url 'users:logout' %}" method="post">
+			                {% csrf_token %}
+			                <input type="submit" value="Log Out" class="logout" title="Log Out">
+			            </form>
+			        </li>
+			        <li class="floatright">
+			            <form action="{% url 'blog:newarticle' %}" method="post">
+			                {% csrf_token %}
+			                <input type="submit" value="New Article" class="newarticle" title="New Article">
+			            </form>
+			        </li>
+			    <!-- If the user is not authenticated, these two links will be diplayed -->
+			    {% else %}
+			        <li class="floatright" title="Sign Up!">
+			            <a href="{% url 'users:signup' %}" class="logsign">Sign Up</a>
+			        </li>
+			        <li class="floatright users" title="Sign In!">
+			            <a href="{% url 'users:login' %}" class="logsign">Log In</a>
+			        </li>
+			    {% endif %}
+			</ul>
+		</nav>
+		
+19. STYLING
+	
+	According to the file blog/static/blog/styles.css
+	
+
+20. HIDE AND DISPLAY THE BACK TO TOP BUTTON
+
+	According to the file blog/static/blog/script.js
+	
+21. SLUGIFY
+
+	Used to copy the title the user gives to an article and transform it into a slug format. This is done in a Javascrip function inside blog/static/blog/script.js. Remembert the the slug will be the final part of the url path to each article.
+	
+		// ############################ Controls the slug's input ########################################
+		const input = document.querySelector("input[name=title]");
+		const slug = document.querySelector("input[name=slug]");
+
+
+		// Converts the title into a slug with valid url's sintax
+		const convertSlug = (title) => {
+			return title.toString().toLowerCase().trim()
+			.replace(/&/g, '_and_') // Replace & for -and-
+			.replace(/[\s\W\-]+/g, "-") // Replace ' ', special characters, and '--' for a single '-'.
+		};
+
+		input.addEventListener("keyup", () => {
+			// Gets the value of the input variable and sends it as argument to the function convertSlug()
+			slug.setAttribute("value", convertSlug(input.value));
+		});

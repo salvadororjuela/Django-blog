@@ -23,6 +23,7 @@
                     <p>Welcome: {{user.username}}</p>
                 </li>
                 <li class="floatright">
+                    <!-- The following form is necesary to execute the action logout_view created in users/views.py -->
                     <form action="{% url 'users:logout' %}" method="post">
                         {% csrf_token %}
                         <input type="submit" value="Log Out" class="logout" title="Log Out">

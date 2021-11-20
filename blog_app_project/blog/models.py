@@ -1,4 +1,5 @@
 from django.db import models
+# Import to use the logged in user as the article author.
 from django.contrib.auth.models import User
 
 
@@ -13,7 +14,8 @@ class Articles(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     # Field to add a thumbnail for the blog article
     thumbnail = models.ImageField(default="default.png", blank=True)
-    # Field to associate the articles with the user that created it
+    # Field to associate the articles with the user that created it. The user
+    # in this case is the logged in User that the system registers.
     author = models.ForeignKey(User, default=None, on_delete=models.CASCADE)
 
     def __str__(self):
