@@ -14,7 +14,7 @@
     {% endif %}
     <br>
     <!-- Include the name of the app followed by ":" and the name of the path
-    to work properly url 'user:signup' -->
+    to work properly url 'user:login' -->
     <div class="centering">
         <form action="{% url 'users:login' %}" method="post" class="loginForm">
             {% csrf_token %}
